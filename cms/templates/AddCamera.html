@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+        <p><h1>添加摄像头</h1></p>
+        <table>
+            <tr>
+                <td>名称:</td>
+                <td><input id="txtName" name="name" width="50"/></td>
+            </tr>
+            <tr>
+                <td>描述:</td>
+                <td><input id="txtDes"  name="des" width="100" multiple="multiple"/></td>
+            </tr>
+            <tr >
+                <td colspan="2"><input type="submit" content="提交" style="margin-top: 10px"/></td>
+            </tr>
+        </table>
+    </form>
+
+{% endblock content %}

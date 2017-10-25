@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <td>文件名:</td>
+                <td><input id="txtFilePath" name="file" type="file" width="150"/></td>
+            </tr>
+            <tr>
+                <td colspan="2"><input type="submit" content="提交"/></td>
+            </tr>
+        </table>
+    </form>
+
+{% endblock content %}

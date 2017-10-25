@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+    <table>
+        <tr>
+            <td>
+                <a href="{% url 'cms:add_camera_group' %}">
+                       <p style="color: red"> 添加摄像头组</p>
+
+                </a>
+            </td>
+        </tr>
+
+        <tr>
+            <td>
+                <a href="{% url 'cms:add_camera' %}">
+                    <p style="color: green"> 添加摄像头</p>
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <a href="{% url 'cms:video_playback' %}">
+                         <p style="color: blue">   Video player</p>
+
+                </a>
+            </td>
+        </tr>
+
+    </table>
+
+{% endblock content %}

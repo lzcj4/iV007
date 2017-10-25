@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <td>用户名:</td>
+                <td><input id="txtUser" name="user" width="50"/></td>
+            </tr>
+            <tr>
+                <td>密码:</td>
+                <td><input id="txtPwd" type="password" name="pwd" width="50"/></td>
+            </tr>
+            <tr>
+                <td colspan="2"><input type="submit" content="提交"/></td>
+            </tr>
+        </table>
+    </form>
+
+{% endblock content %}
