@@ -31,14 +31,22 @@ var y1 = 0;
 var x2 = 100;
 var y2 = 100;
 var i = 0;
+var step = 10;
+var maxPos = 500;
 
-function move(socket) {
+function sendPosData(socket) {
+    if (x1 >= maxPos || y1 >= maxPos || x2 >= maxPos || y2 >= maxPos) {
+        x1 = y1 = 0;
+        x2 = y2 = 100;
+        return;
+    }
+
     imgUrl = i % 2 == 0 ? "http://127.0.0.1:8000/static/images/ship.png" : "http://127.0.0.1:8000/static/images/ship2.png";
     p_name = i % 2 == 0 ? "张三" : "李四";
     p_sex = i % 2 == 0 ? "男" : "女";
     p_age = i % 2 == 0 ? 20 : 80;
-    p_width = i % 2 == 0 ? 200 : 300;
-    p_height = i % 2 == 0 ? 100 : 200;
+    p_width = i % 2 == 0 ? 200 : 200;
+    p_height = i % 2 == 0 ? 200 : 200;
     x = i % 2 == 0 ? x1 : x2;
     y = i++ % 2 == 0 ? y1 : y2;
     data = {
@@ -50,16 +58,99 @@ function move(socket) {
         'x': x,
         'y': y,
         'width': p_width,
-        'height': p_height
+        'height': p_height,
+        'overlays': [{
+                "time": 0,
+                "objects": [{
+                        "x": 100,
+                        "y": 100,
+                        "width": 50,
+                        "height": 50,
+                        "objid": "1",
+                        "objtype": "car",
+                        "drawcolor": "red",
+                        "descs": [{
+                                "desckey": "类型",
+                                "descvalue": "车"
+                            },
+                            {
+                                "desckey": "车辆车型",
+                                "descvalue": "灰色/丰田皇冠-皇冠-未知"
+                            }
+                        ]
+                    },
+                    {
+                        "x": 600,
+                        "y": 600,
+                        "width": 50,
+                        "height": 50,
+                        "objid": "2",
+                        "objtype": "person",
+                        "drawcolor": "red",
+                        "descs": [{
+                                "desckey": "类型",
+                                "descvalue": "人脸"
+                            },
+                            {
+                                "desckey": "性别",
+                                "descvalue": "男"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "time": 1,
+                "objects": [{
+                        "x": 200,
+                        "y": 200,
+                        "width": 200,
+                        "height": 200,
+                        "objid": "1",
+                        "objtype": "car",
+                        "drawcolor": "red",
+                        "descs": [{
+                                "desckey": "类型",
+                                "descvalue": "车"
+                            },
+                            {
+                                "desckey": "车辆车型",
+                                "descvalue": "灰色/丰田皇冠-皇冠-未知"
+                            }
+                        ]
+                    },
+                    {
+                        "x": 600,
+                        "y": 600,
+                        "width": 250,
+                        "height": 250,
+                        "objid": "2",
+                        "objtype": "person",
+                        "drawcolor": "red",
+                        "descs": [{
+                                "desckey": "类型",
+                                "descvalue": "人脸"
+                            },
+                            {
+                                "desckey": "性别",
+                                "descvalue": "男"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
     console.log(data);
     socket.emit('server', data);
-    x1 += 5;
-    y1 += 5;
-    x2 += 5;
-    y2 += 5;
+    x1 += step;
+    y1 += step;
+    x2 += step;
+    y2 += step;
+
 }
 
+var isFirst = true;
 io.on('connection', function(socket) {
     x1 = y1 = 0;
     x2 = y2 = 100;
@@ -75,12 +166,16 @@ io.on('connection', function(socket) {
     //     move(socket);
     // }, 1 * 1000);
 
-    move(socket);
+    sendPosData(socket);
 
     // socket.emit('news', { hello: 'world' });
     socket.on('client', function(data) {
         console.log(data);
-        sleepFor(1000);
-        move(socket);
+        if (isFirst) {
+            isFirst = false;
+        } else {
+            sleepFor(4000);
+        }
+        sendPosData(socket);
     });
 });

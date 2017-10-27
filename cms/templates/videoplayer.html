@@ -40,9 +40,11 @@
 
 <script>
 
-    var dic = new Dictionary();
+    var canvasDict = new Dictionary();
+    var layerDict = new Dictionary();
     var dataList = new Array();
-    var vf = new VideoFrame({id: "videoplayer1", frameRate: 15});
+    var videoFrame1 = new VideoFrame({id: "videoplayer1", frameRate: 25});
+    var videoFrame2 = new VideoFrame({id: "videoplayer1", frameRate: 25});
     var videoPlayer1 = document.getElementById("videoplayer1");
     var videoPlayer2 = document.getElementById("videoplayer2");
 
@@ -60,11 +62,11 @@
 
     addVidePlayerEvent(videoPlayer1, "canplaythrough", function (ev) {
         $("#divCanvas").empty();
-        dic.clear();
+        canvasDict.clear();
     });
     addVidePlayerEvent(videoPlayer2, "canplaythrough", function (ev) {
         $("#divCanvas").empty();
-        dic.clear();
+        canvasDict.clear();
     });
     addVidePlayerEvent(videoPlayer1, "timeupdate", function (ev) {
         console.log("player:" + ev.target.id + "  duration:" + ev.target.duration + " currentTime:" +
@@ -98,10 +100,8 @@
     }
 
     function drawRect(data) {
-        var cvs = dic.get(data.name)
-        {#        var player = videoPlayer1.style.visibility == "visible" ? videoPlayer1 : videoPlayer2;#}
-
-        var player = videoPlayer1;
+        var cvs = canvasDict.get(data.name)
+        var player = videoPlayer1.style.visibility == "visible" ? videoPlayer1 : videoPlayer2;
         if (cvs != null) {
             cvs.style.left = scaleXByVideo(player, data.x);
             cvs.style.top = scaleYByVideo(player, data.y);
@@ -113,10 +113,11 @@
         canvas.height = Math.max(scaleYByVideo(player, data.height), 200);
         canvas.style.left = scaleXByVideo(player, data.x);
         canvas.style.top = scaleYByVideo(player, data.y);
-        dic.put(data.name, canvas);
+        canvasDict.put(data.name, canvas);
 
         $('#divCanvas').append(canvas);
-        console.log("++++ add new rect");
+        console.log("++++ add canvas:" + canvas.style.left + " canvas:" + canvas.style.top +
+            "width:" + canvas.width + " height:" + canvas.height);
         {#        $("#videoplayer").click(function (ev) {#}
         {#            var pos = mousePosition(ev);#}
         {#            canvas.style.left = pos.x;#}
@@ -158,6 +159,11 @@
     socket.on('server', function (data) {
         {#        console.log(data);#}
         dataList.push(data);
+        layerDict.clear();
+        var layerData = data.overlays;
+        for (var i in layerData) {
+            layerDict.put(layerData[i].time, layerData[i].objects);
+        }
         socket.emit('client', {my: 'data'});
     });
 
@@ -182,8 +188,6 @@
     ws.onmessage = function (evt) {
         var data = JSON.parse(evt.data);
         if (data.code == "200" && data.filename != null) {
-            videoPlayer1.src = data.filename;
-            return;
 
             if (videoPlayer1.src == "") {
                 videoPlayer1.src = data.filename;
