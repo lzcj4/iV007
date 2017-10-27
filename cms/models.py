@@ -44,7 +44,7 @@ class CameraGroup(models.Model):
     Name = models.CharField(max_length=20, verbose_name="名称")
     Description = models.CharField(max_length=50, verbose_name="描述", null=True, blank=True)
     Creator = models.ForeignKey(User, verbose_name="创建人")
-    CreatedTime = models.DateTimeField(default=timezone.now(), verbose_name="创建时间")
+    CreatedTime = models.DateTimeField( verbose_name="创建时间")
 
     # Parent = models.ForeignKey(CameraGroup, verbose_name="父节点")
 
