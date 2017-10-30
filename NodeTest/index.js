@@ -21,7 +21,7 @@ function handler(req, res) {
         });
 }
 
-function sleepFor(sleepDuration) {
+function threadSleep(sleepDuration) {
     var now = new Date().getTime();
     while (new Date().getTime() < now + sleepDuration) { /* do nothing */ }
 }
@@ -35,11 +35,6 @@ var step = 10;
 var maxPos = 500;
 
 function sendPosData(socket) {
-    if (x1 >= maxPos || y1 >= maxPos || x2 >= maxPos || y2 >= maxPos) {
-        x1 = y1 = 0;
-        x2 = y2 = 100;
-        return;
-    }
 
     imgUrl = i % 2 == 0 ? "http://127.0.0.1:8000/static/images/ship.png" : "http://127.0.0.1:8000/static/images/ship2.png";
     p_name = i % 2 == 0 ? "张三" : "李四";
@@ -49,6 +44,51 @@ function sendPosData(socket) {
     p_height = i % 2 == 0 ? 200 : 200;
     x = i % 2 == 0 ? x1 : x2;
     y = i++ % 2 == 0 ? y1 : y2;
+
+    var startX = 150,
+        startY = 20,
+        posStep = 200;
+    var startWidth = 50,
+        startHeight = 50,
+        sizeStep = 10;
+    var colors = ["red", "blue", "green", "black", "yellow", "red", "blue", "green", "black", "yellow", ]
+    var objects = ["人物", "小汽车", "电脑", "桌子", "椅子"]
+    var descriptions = ["男人", "红色丰田", "IBM笔记本", "白色办公桌", "断裂椅子"]
+    var layerObjs = [];
+
+    for (i = 0; i < 4 * 4 + 1; i++) {
+        var itemObj = { "time": i * 0.25, "objects": [] };
+        startX = 100;
+        startY = 20 * (i + 1);
+        startWidth = 50;
+        startHeight = 50;
+        for (j = 0; j < 5; j++) {
+            itemObj.objects.push({
+                "x": startX,
+                "y": startY,
+                "width": startWidth,
+                "height": startHeight,
+                "objid": "objid" + i + j,
+                "objtype": "car",
+                "drawcolor": colors[j],
+                "descs": [{
+                        "desckey": "类型",
+                        "descvalue": objects[j]
+                    },
+                    {
+                        "desckey": "车辆车型",
+                        "descvalue": descriptions[j]
+                    }
+                ]
+            });
+            startX += posStep;
+            startWidth += sizeStep;
+            startHeight += sizeStep;
+        }
+
+        layerObjs.push(itemObj);
+    }
+
     data = {
         'id': i,
         'name': p_name,
@@ -59,88 +99,8 @@ function sendPosData(socket) {
         'y': y,
         'width': p_width,
         'height': p_height,
-        'overlays': [{
-                "time": 0,
-                "objects": [{
-                        "x": 100,
-                        "y": 100,
-                        "width": 50,
-                        "height": 50,
-                        "objid": "1",
-                        "objtype": "car",
-                        "drawcolor": "red",
-                        "descs": [{
-                                "desckey": "类型",
-                                "descvalue": "车"
-                            },
-                            {
-                                "desckey": "车辆车型",
-                                "descvalue": "灰色/丰田皇冠-皇冠-未知"
-                            }
-                        ]
-                    },
-                    {
-                        "x": 600,
-                        "y": 600,
-                        "width": 50,
-                        "height": 50,
-                        "objid": "2",
-                        "objtype": "person",
-                        "drawcolor": "red",
-                        "descs": [{
-                                "desckey": "类型",
-                                "descvalue": "人脸"
-                            },
-                            {
-                                "desckey": "性别",
-                                "descvalue": "男"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "time": 1,
-                "objects": [{
-                        "x": 200,
-                        "y": 200,
-                        "width": 200,
-                        "height": 200,
-                        "objid": "1",
-                        "objtype": "car",
-                        "drawcolor": "red",
-                        "descs": [{
-                                "desckey": "类型",
-                                "descvalue": "车"
-                            },
-                            {
-                                "desckey": "车辆车型",
-                                "descvalue": "灰色/丰田皇冠-皇冠-未知"
-                            }
-                        ]
-                    },
-                    {
-                        "x": 600,
-                        "y": 600,
-                        "width": 250,
-                        "height": 250,
-                        "objid": "2",
-                        "objtype": "person",
-                        "drawcolor": "red",
-                        "descs": [{
-                                "desckey": "类型",
-                                "descvalue": "人脸"
-                            },
-                            {
-                                "desckey": "性别",
-                                "descvalue": "男"
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
+        'overlays': layerObjs,
+    };
     console.log(data);
     socket.emit('server', data);
     x1 += step;
@@ -171,11 +131,7 @@ io.on('connection', function(socket) {
     // socket.emit('news', { hello: 'world' });
     socket.on('client', function(data) {
         console.log(data);
-        if (isFirst) {
-            isFirst = false;
-        } else {
-            sleepFor(4000);
-        }
         sendPosData(socket);
+        threadSleep(4000);
     });
 });

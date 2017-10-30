@@ -18,7 +18,8 @@ function Dictionary() {
     };
 
     this.get = function (key) {
-        return this.has(key) ? items[key] : undefined;
+        var result = this.has(key) ? items[key] : undefined;
+        return result;
     };
 
     this.values = function () {
@@ -61,7 +62,7 @@ function mousePosition(ev) {
 }
 
 
-function addVidePlayerEvent(videoPlayer,ev, func) {
+function addVidePlayerEvent(videoPlayer, ev, func) {
     videoPlayer.addEventListener(ev, func, false);
 }
 
