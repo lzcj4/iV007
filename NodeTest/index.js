@@ -115,7 +115,10 @@ const wss = new WebSocket.Server({ port: 8080 });
 wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(message) {
         console.log('received: %s', message);
-        ws.send(getData());
+        // threadSleep(4000);
+        if (ws.readyState == WebSocket.OPEN) {
+            ws.send(getData());
+        }
     });
 
     ws.send(getData());

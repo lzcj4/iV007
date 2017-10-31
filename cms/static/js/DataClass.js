@@ -68,7 +68,8 @@ function RectObject(props) {
     this.objtype = props.objtype;
     this.drawcolor = props.drawcolor;
     this.descs = new Array();
-    for (var item of props.descs) {
+    for (var index in props.descs) {
+        var item = props.descs[index];
         this.descs.push(new DescObject(item));
     }
 }
@@ -79,7 +80,8 @@ function TimeObject(props) {
     }
     this.time = props.time;
     this.objects = new Array();
-    for (var item of props.objects) {
+    for (var index in props.objects) {
+        var item = props.objects[index];
         this.objects.push(new RectObject(item));
     }
     this.get = function (index) {

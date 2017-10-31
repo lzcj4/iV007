@@ -2,8 +2,8 @@
 <head>
     <meta name="viewport" content="width=device-width">
     {% load static %}
-{#    <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>#}
-{#    <script src="{% static 'js/socket.io.js' %}"></script>#}
+    {#    <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>#}
+    {#    <script src="{% static 'js/socket.io.js' %}"></script>#}
     <script src="{% static 'js/VideoFrame.js' %}"></script>
     <script src="{% static 'js/DataClass.js' %}"></script>
     <style>
@@ -87,13 +87,13 @@
     var videoPlayCallBack = function (ev) {
         console.log("player:" + ev.target.id + "  duration:" + ev.target.duration +
             " currentTime:" + ev.target.currentTime.toFixed(2));
-        var intSecond = ev.target.currentTime.toFixed(0);
-        if (intSecond == lastSecond) {
-            return;
-        }
-        return;
-        lastSecond = intSecond;
+        {#        var intSecond = ev.target.currentTime.toFixed(0);#}
+        {#        if (intSecond == lastSecond) {#}
+        {#            return;#}
+        {#        }#}
+        {#        lastSecond = intSecond;#}
         new Promise(function (resolve, reject) {
+            threadSleep(100);
             drawRectByTime(ev.target.currentTime.toFixed(2));
             resolve("done");
             reject("Error test");
@@ -162,6 +162,12 @@
         {#        ctx.fillText("w3school.com.cn", 10, 90);#}
     }
 
+    function threadSleep(sleepDuration) {
+        var now = new Date().getTime();
+        while (new Date().getTime() < now + sleepDuration) { /* do nothing */
+        }
+    }
+
     function getMaxTextLen(rectObj, ctx) {
         var result = 0;
         if (!(rectObj && ctx)) {
@@ -169,7 +175,8 @@
             return result;
         }
 
-        for (var item of rectObj.descs) {
+        for (var index in rectObj.descs) {
+            var item = rectObj.descs[index];
             var width = ctx.measureText(item.descvalue).width;
             if (width > result) {
                 result = width;
@@ -204,7 +211,8 @@
             return;
         }
         var i = 1;
-        for (var item of timeObj.objects) {
+        for (var index in timeObj.objects) {
+            var item = timeObj.objects[index];
             var cvs = canvasDict.get(item.objid)
             if (cvs != null) {
                 cvs.style.left = scaleXByVideo(player, item.x);
@@ -233,8 +241,10 @@
 
             var txtStartX = rectWidth + 10, txtStartY = 10;
             var fontSize = 10;
-            for (var desc of item.descs) {
-                ctx.fillStyle = "#FF3E4265"
+            for (var index in item.descs) {
+                ctx.fillStyle = "";
+                var desc = item.descs[index];
+                ctx.fillStyle = "#FF3E4265";
                 ctx.fillRect(txtStartX, txtStartY - 10, maxTexLen, parseInt(fontSize, 10) + 3);
                 ctx.fillStyle = item.drawcolor;
                 ctx.fontSize = fontSize;
@@ -267,15 +277,15 @@
     };
     wsdata.onmessage = function (evt) {
         var data = JSON.parse(evt.data);
-        {#        console.log(data);#}
+        console.log(data);
         {#        dataList.push(data);#}
         layerDict.clear();
         var layerData = data.overlays;
-        for (var item of layerData) {
+        for (var index in layerData) {
+            var item = layerData[index];
             layerDict.put(item.time, new TimeObject(item));
         }
         console.log("layerDict.len:" + layerDict.size());
-        wsdata.send(JSON.stringify({my: 'data'}));
     }
 
     {#    setInterval(function () {#}
@@ -300,6 +310,9 @@
         var data = JSON.parse(evt.data);
         if (data.code == "200" && data.filename != null) {
 
+{#            if (wsdata.readyState == WebSocket.OPEN) {#}
+{#                wsdata.send(JSON.stringify({my: 'data'}));#}
+{#            }#}
             if (videoPlayer1.src == "") {
                 videoPlayer1.src = data.filename;
                 return;
