@@ -5,8 +5,9 @@ function helloWorld() {
 var app = require('http').createServer(handler)
 var io = require('socket.io')(app);
 var fs = require('fs');
+var WebSocket = require('ws');
 
-app.listen(80);
+//app.listen(80);
 
 function handler(req, res) {
     fs.readFile(__dirname + '/index.js',
@@ -34,7 +35,7 @@ var i = 0;
 var step = 10;
 var maxPos = 500;
 
-function sendPosData(socket) {
+function getData() {
 
     imgUrl = i % 2 == 0 ? "http://127.0.0.1:8000/static/images/ship.png" : "http://127.0.0.1:8000/static/images/ship2.png";
     p_name = i % 2 == 0 ? "张三" : "李四";
@@ -102,13 +103,23 @@ function sendPosData(socket) {
         'overlays': layerObjs,
     };
     console.log(data);
-    socket.emit('server', data);
     x1 += step;
     y1 += step;
     x2 += step;
     y2 += step;
-
+    return JSON.stringify(data);
 }
+
+const wss = new WebSocket.Server({ port: 8080 });
+
+wss.on('connection', function connection(ws) {
+    ws.on('message', function incoming(message) {
+        console.log('received: %s', message);
+        ws.send(getData());
+    });
+
+    ws.send(getData());
+});
 
 var isFirst = true;
 io.on('connection', function(socket) {
@@ -131,7 +142,8 @@ io.on('connection', function(socket) {
     // socket.emit('news', { hello: 'world' });
     socket.on('client', function(data) {
         console.log(data);
-        sendPosData(socket);
+
+        socket.emit('server', getData());
         threadSleep(4000);
     });
 });

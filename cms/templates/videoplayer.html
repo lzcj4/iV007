@@ -2,10 +2,10 @@
 <head>
     <meta name="viewport" content="width=device-width">
     {% load static %}
-    <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
-    <script src="{% static 'js/socket.io.js' %}"></script>
+{#    <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>#}
+{#    <script src="{% static 'js/socket.io.js' %}"></script>#}
     <script src="{% static 'js/VideoFrame.js' %}"></script>
-    <script src="{% static 'js/RectDraw.js' %}"></script>
+    <script src="{% static 'js/DataClass.js' %}"></script>
     <style>
         canvas {
             border: 1px solid transparent;
@@ -40,52 +40,20 @@
 
 <script>
     'use strict';
+    var WS_DATA_SERVER = 'ws://172.16.4.166:8080';
+    var WS_VIDEO_SERVER = 'ws://172.16.16.88:4589';
+    const VIDEOFRAMERATE = 25;
     var canvasDict = new Dictionary();
     var layerDict = new Dictionary();
     var dataList = new Array();
-    const videoFrameRate = 25;
-    var videoFrame1 = new VideoFrame({id: "videoplayer1", frameRate: videoFrameRate});
-    var videoFrame2 = new VideoFrame({id: "videoplayer1", frameRate: videoFrameRate});
+    var videoFrame1 = new VideoFrame({id: "videoplayer1", frameRate: VIDEOFRAMERATE});
+    var videoFrame2 = new VideoFrame({id: "videoplayer1", frameRate: VIDEOFRAMERATE});
     var videoPlayer1 = document.getElementById("videoplayer1");
     var videoPlayer2 = document.getElementById("videoplayer2");
 
-    function DescObject(props) {
-        this.desckey = props ? props.desckey : "";
-        this.descvalue = props ? props.descvalue : "";
-    }
 
-    function RectObject(props) {
-        if (!props) {
-            return;
-        }
-        this.x = props.x;
-        this.y = props.y;
-        this.width = props.width;
-        this.height = props.height;
-        this.objid = props.objid;
-        this.objtype = props.objtype;
-        this.drawcolor = props.drawcolor;
-        this.descs = new Array();
-        for (var item of props.descs) {
-            this.descs.push(new DescObject(item));
-        }
-    }
-
-    function TimeObject(props) {
-        if (!props) {
-            return;
-        }
-        this.time = props.time;
-        this.objects = new Array();
-        for (var item of props.objects) {
-            this.objects.push(new RectObject(item));
-        }
-        this.get = function (index) {
-            if (index >= 0 && index < this.objects.length) {
-                return this.objects[index];
-            }
-            return null;
-        }
+    function addVidePlayerEvent(videoPlayer, ev, func) {
+        videoPlayer.addEventListener(ev, func, false);
     }
 
     function scaleXByVideo(videoPlayer, x) {
@@ -100,7 +68,11 @@
     }
 
     var removeAllDrawObjects = function () {
-        $("#divCanvas").empty();
+        // $("#divCanvas").empty();
+        var divCanvas = document.getElementById("divCanvas");
+        while (divCanvas.childNodes.length > 0) {
+            divCanvas.removeChild(divCanvas.firstChild);
+        }
         canvasDict.clear();
     }
 
@@ -111,10 +83,25 @@
     addVidePlayerEvent(videoPlayer1, "canplaythrough", videoCanPlayCallback);
     addVidePlayerEvent(videoPlayer2, "canplaythrough", videoCanPlayCallback);
 
+    var lastSecond = -1;
     var videoPlayCallBack = function (ev) {
         console.log("player:" + ev.target.id + "  duration:" + ev.target.duration +
             " currentTime:" + ev.target.currentTime.toFixed(2));
-        drawRectByTime(ev.target.currentTime.toFixed(2));
+        var intSecond = ev.target.currentTime.toFixed(0);
+        if (intSecond == lastSecond) {
+            return;
+        }
+        return;
+        lastSecond = intSecond;
+        new Promise(function (resolve, reject) {
+            drawRectByTime(ev.target.currentTime.toFixed(2));
+            resolve("done");
+            reject("Error test");
+        }).then(function (msg) {
+            console.log(" Promise succeed:%s", msg);
+        }, function (error) {
+            console.log(" Promise failed:%s", error);
+        });
     }
     addVidePlayerEvent(videoPlayer1, "timeupdate", videoPlayCallBack);
     addVidePlayerEvent(videoPlayer2, "timeupdate", videoPlayCallBack);
@@ -135,7 +122,8 @@
         canvas.style.top = scaleYByVideo(player, data.y);
         canvasDict.put(data.name, canvas);
 
-        $('#divCanvas').append(canvas);
+        document.getElementById("divCanvas").appendChild(canvas);
+        {#        $('#divCanvas').append(canvas);#}
         console.log("++++ add canvas:" + canvas.style.left + " canvas:" + canvas.style.top +
             "width:" + canvas.width + " height:" + canvas.height);
         {#        $("#videoplayer").click(function (ev) {#}
@@ -203,15 +191,15 @@
                 }
             }
         }
-        return result;
+        return {time: second, obj: result};
     }
-
 
     function drawRectByTime(second) {
         removeAllDrawObjects();
-        {#        var player = videoPlayer1.style.visibility == "visible" ? videoPlayer1 : videoPlayer2;#}
         var player = videoPlayer1.style.zIndex == 1 ? videoPlayer1 : videoPlayer2;
-        var timeObj = getNearestItem(second);
+        var dataTuple = getNearestItem(second);
+        var timeObj = dataTuple.obj;
+        var objSecond = dataTuple.time;
         if (timeObj == undefined) {
             return;
         }
@@ -221,28 +209,27 @@
             if (cvs != null) {
                 cvs.style.left = scaleXByVideo(player, item.x);
                 cvs.style.top = scaleYByVideo(player, item.y);
-                console.log("---> move rect left:" + cvs.style.left + " top:" + cvs.style.top);
+                console.log("---> move rect left:%s, top:%s ,current time:%s", cvs.style.left, cvs.style.top, objSecond);
                 continue;
             }
             var canvas = document.createElement("canvas");
             var ctx = canvas.getContext("2d");
             var rectWidth = scaleXByVideo(player, item.width);
             var rectHeight = scaleYByVideo(player, item.height);
-            var maxTexLen = getMaxTextLen(item, ctx) + 10;
+            var maxTexLen = getMaxTextLen(item, ctx) + 10;//10 for padding
             canvas.width = rectWidth + maxTexLen;
             canvas.height = rectHeight;
             canvas.style.left = scaleXByVideo(player, item.x);
             canvas.style.top = scaleYByVideo(player, item.y);
             canvasDict.put(item.objid, canvas);
-
-            $('#divCanvas').append(canvas);
-            console.log("++++ add canvas:" + canvas.style.left + " canvas:" + canvas.style.top +
-                "width:" + canvas.width + " height:" + canvas.height);
+            document.getElementById("divCanvas").appendChild(canvas);
+            {#            $('#divCanvas').append(canvas);#}
+            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s", canvas.style.left,
+                canvas.style.top, canvas.width, canvas.height, objSecond);
 
             ctx.strokeStyle = item.drawcolor;
             ctx.lineWidth = i++;
             ctx.strokeRect(0, 0, rectWidth, rectHeight);
-            ctx.fillStyle = item.drawcolor;
 
             var txtStartX = rectWidth + 10, txtStartY = 10;
             var fontSize = 10;
@@ -253,22 +240,43 @@
                 ctx.fontSize = fontSize;
                 ctx.fillText(desc.descvalue, txtStartX, txtStartY);
                 txtStartY += 20;
+                ctx.fillStyle = "";
             }
         }
     }
 
     //structure data
-    var socket = io('http://172.16.4.166:80');
-    socket.on('server', function (data) {
+    {#    var socket = io('http://172.16.4.166:80');#}
+    {#    socket.on('server', function (data) {#}
+    {#        console.log(data);#}
+    {#        dataList.push(data);#}
+    {#        layerDict.clear();#}
+    {#        var layerData = data.overlays;#}
+    {#        for (var item of layerData) {#}
+    {#            layerDict.put(item.time, new TimeObject(item));#}
+    {#        }#}
+    {#        console.log("layerDict.len:" + layerDict.size());#}
+    {#        socket.emit('client', {my: 'data'});#}
+    {#    });#}
+
+    //structure data
+    var wsdata = new WebSocket(WS_DATA_SERVER);
+    wsdata.onopen = function () {
+        console.log("web socket connected succeed");
+        wsdata.send(JSON.stringify({my: 'data'}));
+    };
+    wsdata.onmessage = function (evt) {
+        var data = JSON.parse(evt.data);
         {#        console.log(data);#}
-        dataList.push(data);
+        {#        dataList.push(data);#}
         layerDict.clear();
         var layerData = data.overlays;
         for (var item of layerData) {
             layerDict.put(item.time, new TimeObject(item));
         }
-        socket.emit('client', {my: 'data'});
-    });
+        console.log("layerDict.len:" + layerDict.size());
+        wsdata.send(JSON.stringify({my: 'data'}));
+    }
 
     {#    setInterval(function () {#}
     {#        if (dataList.length == 0) {#}
@@ -279,16 +287,16 @@
     {#    }, 1000);#}
 
     //video data
-    var ws = new WebSocket('ws://172.16.16.88:4589');
-    ws.onopen = function () {
+    var wsVideo = new WebSocket(WS_VIDEO_SERVER);
+    wsVideo.onopen = function () {
         console.log("web socket connected succeed");
-        ws.send('startvideo=rtsp://172.16.16.88:4588/vs/rp/A414374375B6/1/1/');
+        wsVideo.send('startvideo=rtsp://172.16.16.88:4588/vs/rp/A414374375B6/1/1/');
     };
 
-    ws.onerror = function (error) {
+    wsVideo.onerror = function (error) {
         console.log("web socket connected failed" + error);
     };
-    ws.onmessage = function (evt) {
+    wsVideo.onmessage = function (evt) {
         var data = JSON.parse(evt.data);
         if (data.code == "200" && data.filename != null) {
 

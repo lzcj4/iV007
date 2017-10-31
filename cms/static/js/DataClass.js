@@ -89,7 +89,7 @@ function TimeObject(props) {
         return null;
     }
 }
-    
+
 function mousePosition(ev) {
     var scrollLeft = document.documentElement.scrollLeft || document.body.scrollLeft;
     var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
