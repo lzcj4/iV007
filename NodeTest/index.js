@@ -51,16 +51,16 @@ function getData() {
         posStep = 200;
     var startWidth = 50,
         startHeight = 50,
-        sizeStep = 10;
+        sizeStep = 2;
     var colors = ["red", "blue", "green", "black", "yellow", "red", "blue", "green", "black", "yellow", ]
     var objects = ["人物", "小汽车", "电脑", "桌子", "椅子"]
     var descriptions = ["男人", "红色丰田", "IBM笔记本", "白色办公桌", "断裂椅子"]
     var layerObjs = [];
 
-    for (i = 0; i < 4 * 4 + 1; i++) {
-        var itemObj = { "time": i * 0.25, "objects": [] };
+    for (i = 0; i < 100; i++) {
+        var itemObj = { "time": i, "objects": [] };
         startX = 100;
-        startY = 20 * (i + 1);
+        startY = 20 + i * 5;
         startWidth = 50;
         startHeight = 50;
         for (j = 0; j < 5; j++) {

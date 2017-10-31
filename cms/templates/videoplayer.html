@@ -40,17 +40,17 @@
 
 <script>
     'use strict';
-    var WS_DATA_SERVER = 'ws://172.16.4.166:8080';
-    var WS_VIDEO_SERVER = 'ws://172.16.16.88:4589';
+    const WS_DATA_SERVER = 'ws://172.16.4.166:8080';
+    const WS_VIDEO_SERVER = 'ws://172.16.16.88:4589';
     const VIDEOFRAMERATE = 25;
+    const RENDER_INTERVAL = 20;
+
     var canvasDict = new Dictionary();
     var layerDict = new Dictionary();
-    var dataList = new Array();
     var videoFrame1 = new VideoFrame({id: "videoplayer1", frameRate: VIDEOFRAMERATE});
-    var videoFrame2 = new VideoFrame({id: "videoplayer1", frameRate: VIDEOFRAMERATE});
+    var videoFrame2 = new VideoFrame({id: "videoplayer2", frameRate: VIDEOFRAMERATE});
     var videoPlayer1 = document.getElementById("videoplayer1");
     var videoPlayer2 = document.getElementById("videoplayer2");
-
 
     function addVidePlayerEvent(videoPlayer, ev, func) {
         videoPlayer.addEventListener(ev, func, false);
@@ -76,91 +76,8 @@
         canvasDict.clear();
     }
 
-    var videoCanPlayCallback = function () {
-        removeAllDrawObjects();
-    }
-
-    addVidePlayerEvent(videoPlayer1, "canplaythrough", videoCanPlayCallback);
-    addVidePlayerEvent(videoPlayer2, "canplaythrough", videoCanPlayCallback);
-
-    var lastSecond = -1;
-    var videoPlayCallBack = function (ev) {
-        console.log("player:" + ev.target.id + "  duration:" + ev.target.duration +
-            " currentTime:" + ev.target.currentTime.toFixed(2));
-        {#        var intSecond = ev.target.currentTime.toFixed(0);#}
-        {#        if (intSecond == lastSecond) {#}
-        {#            return;#}
-        {#        }#}
-        {#        lastSecond = intSecond;#}
-        new Promise(function (resolve, reject) {
-            threadSleep(100);
-            drawRectByTime(ev.target.currentTime.toFixed(2));
-            resolve("done");
-            reject("Error test");
-        }).then(function (msg) {
-            console.log(" Promise succeed:%s", msg);
-        }, function (error) {
-            console.log(" Promise failed:%s", error);
-        });
-    }
-    addVidePlayerEvent(videoPlayer1, "timeupdate", videoPlayCallBack);
-    addVidePlayerEvent(videoPlayer2, "timeupdate", videoPlayCallBack);
-
-    function drawRect(data) {
-        var cvs = canvasDict.get(data.name)
-        var player = videoPlayer1.style.visibility == "visible" ? videoPlayer1 : videoPlayer2;
-        if (cvs != null) {
-            cvs.style.left = scaleXByVideo(player, data.x);
-            cvs.style.top = scaleYByVideo(player, data.y);
-            console.log("---> move rect left:" + cvs.style.left + " top:" + cvs.style.top);
-            return;
-        }
-        var canvas = document.createElement("canvas");
-        canvas.width = Math.max(scaleXByVideo(player, item.width), 200);
-        canvas.height = Math.max(scaleYByVideo(player, item.height), 200);
-        canvas.style.left = scaleXByVideo(player, data.x);
-        canvas.style.top = scaleYByVideo(player, data.y);
-        canvasDict.put(data.name, canvas);
-
-        document.getElementById("divCanvas").appendChild(canvas);
-        {#        $('#divCanvas').append(canvas);#}
-        console.log("++++ add canvas:" + canvas.style.left + " canvas:" + canvas.style.top +
-            "width:" + canvas.width + " height:" + canvas.height);
-        {#        $("#videoplayer").click(function (ev) {#}
-        {#            var pos = mousePosition(ev);#}
-        {#            canvas.style.left = pos.x;#}
-        {#            canvas.style.top = pos.y;#}
-        {#            var num = vf.get();#}
-        {#            console.log("current frames:" + num);#}
-        {#        })#}
-        var ctx = canvas.getContext("2d");
-        ctx.strokeStyle = "red";
-        ctx.strokeRect(0, 0, 100, 100);
-        var img = document.createElement("img");
-        img.width = 50;
-        img.height = 50;
-        img.src = data.icon;
-        img.onload = function () {
-            ctx.drawImage(img, 110, 0);
-        };
-        ctx.fillStyle = "red"
-        ctx.fillText(data.name, 110, 70);
-        ctx.fillText(data.sex, 110, 85);
-        ctx.fillText(data.age, 110, 100);
-        {#        ctx.fillStyle = "#d3d3d3";#}
-        {#        ctx.fillStyle = "green";#}
-        {#        ctx.fill();#}
-        {##}
-        {#        ctx.font = "30px Verdana";#}
-        {#        // 创建渐变#}
-        {#        var gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);#}
-        {#        gradient.addColorStop("0", "magenta");#}
-        {#        gradient.addColorStop("0.5", "blue");#}
-        {#        gradient.addColorStop("1.0", "red");#}
-        {#        // 用渐变填色#}
-        {#        ctx.fillStyle = gradient;#}
-        {#        ctx.fillText("w3school.com.cn", 10, 90);#}
-    }
+    addVidePlayerEvent(videoPlayer1, "canplaythrough", removeAllDrawObjects);
+    addVidePlayerEvent(videoPlayer2, "canplaythrough", removeAllDrawObjects);
 
     function threadSleep(sleepDuration) {
         var now = new Date().getTime();
@@ -185,28 +102,11 @@
         return result;
     }
 
-    function getNearestItem(second) {
-        var result = layerDict.get(second);
-        if (result == undefined) {
-            var i = 0
-            var tempKey;
-            while (true) {
-                tempKey = i++ * 0.25;
-                if (tempKey > second) {
-                    result = layerDict.get(tempKey);
-                    break;
-                }
-            }
-        }
-        return {time: second, obj: result};
-    }
-
     function drawRectByTime(second) {
         removeAllDrawObjects();
         var player = videoPlayer1.style.zIndex == 1 ? videoPlayer1 : videoPlayer2;
-        var dataTuple = getNearestItem(second);
-        var timeObj = dataTuple.obj;
-        var objSecond = dataTuple.time;
+        console.log("current Time:%s,palyer:%s,layerDict.len:", second, videoPlayer1.style.zIndex == 1 ? "player1" : " === player2", layerDict.size());
+        var timeObj = layerDict.get(second);
         if (timeObj == undefined) {
             return;
         }
@@ -217,7 +117,7 @@
             if (cvs != null) {
                 cvs.style.left = scaleXByVideo(player, item.x);
                 cvs.style.top = scaleYByVideo(player, item.y);
-                console.log("---> move rect left:%s, top:%s ,current time:%s", cvs.style.left, cvs.style.top, objSecond);
+                {#                console.log("---> move rect left:%s, top:%s ,current time:%s", cvs.style.left, cvs.style.top, second);#}
                 continue;
             }
             var canvas = document.createElement("canvas");
@@ -232,8 +132,8 @@
             canvasDict.put(item.objid, canvas);
             document.getElementById("divCanvas").appendChild(canvas);
             {#            $('#divCanvas').append(canvas);#}
-            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s", canvas.style.left,
-                canvas.style.top, canvas.width, canvas.height, objSecond);
+            {#            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s", canvas.style.left,#}
+            {#                canvas.style.top, canvas.width, canvas.height, second);#}
 
             ctx.strokeStyle = item.drawcolor;
             ctx.lineWidth = i++;
@@ -273,7 +173,6 @@
     var wsdata = new WebSocket(WS_DATA_SERVER);
     wsdata.onopen = function () {
         console.log("web socket connected succeed");
-        wsdata.send(JSON.stringify({my: 'data'}));
     };
     wsdata.onmessage = function (evt) {
         var data = JSON.parse(evt.data);
@@ -285,16 +184,13 @@
             var item = layerData[index];
             layerDict.put(item.time, new TimeObject(item));
         }
-        console.log("layerDict.len:" + layerDict.size());
     }
 
-    {#    setInterval(function () {#}
-    {#        if (dataList.length == 0) {#}
-    {#            return;#}
-    {#        }#}
-    {#        var data = dataList.shift();#}
-    {#        drawRect(data);#}
-    {#    }, 1000);#}
+    setInterval(function () {
+        var currentFrame = videoPlayer1.style.zIndex == 1 ? videoFrame1.get() : videoFrame2.get();
+        currentFrame = currentFrame.toFixed(0);
+        drawRectByTime(currentFrame);
+    }, RENDER_INTERVAL);
 
     //video data
     var wsVideo = new WebSocket(WS_VIDEO_SERVER);
@@ -309,13 +205,12 @@
     wsVideo.onmessage = function (evt) {
         var data = JSON.parse(evt.data);
         if (data.code == "200" && data.filename != null) {
-
-{#            if (wsdata.readyState == WebSocket.OPEN) {#}
-{#                wsdata.send(JSON.stringify({my: 'data'}));#}
-{#            }#}
             if (videoPlayer1.src == "") {
                 videoPlayer1.src = data.filename;
                 return;
+            }
+            if (wsdata.readyState == WebSocket.OPEN) {
+                wsdata.send(JSON.stringify({my: 'data'}));
             }
             if (!videoPlayer1.paused) {
                 videoPlayer2.src = data.filename;
