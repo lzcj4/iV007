@@ -51,7 +51,45 @@ function Dictionary() {
     };
 }
 
+function DescObject(props) {
+    this.desckey = props ? props.desckey : "";
+    this.descvalue = props ? props.descvalue : "";
+}
 
+function RectObject(props) {
+    if (!props) {
+        return;
+    }
+    this.x = props.x;
+    this.y = props.y;
+    this.width = props.width;
+    this.height = props.height;
+    this.objid = props.objid;
+    this.objtype = props.objtype;
+    this.drawcolor = props.drawcolor;
+    this.descs = new Array();
+    for (var item of props.descs) {
+        this.descs.push(new DescObject(item));
+    }
+}
+
+function TimeObject(props) {
+    if (!props) {
+        return;
+    }
+    this.time = props.time;
+    this.objects = new Array();
+    for (var item of props.objects) {
+        this.objects.push(new RectObject(item));
+    }
+    this.get = function (index) {
+        if (index >= 0 && index < this.objects.length) {
+            return this.objects[index];
+        }
+        return null;
+    }
+}
+    
 function mousePosition(ev) {
     var scrollLeft = document.documentElement.scrollLeft || document.body.scrollLeft;
     var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
@@ -62,7 +100,4 @@ function mousePosition(ev) {
 }
 
 
-function addVidePlayerEvent(videoPlayer, ev, func) {
-    videoPlayer.addEventListener(ev, func, false);
-}
 
