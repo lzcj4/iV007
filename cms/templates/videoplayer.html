@@ -2,16 +2,7 @@
 <head>
     <meta name="viewport" content="width=device-width">
     {% load static %}
-    {#    <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>#}
-    {#    <script src="{% static 'js/socket.io.js' %}"></script>#}
-    <script src="{% static 'js/VideoFrame.js' %}"></script>
     <script src="{% static 'js/DataClass.js' %}"></script>
-    <style>
-        canvas {
-            border: 1px solid transparent;
-            position: absolute;
-        }
-    </style>
 </head>
 
 <body>
@@ -42,17 +33,16 @@
     'use strict';
     const WS_DATA_SERVER = 'ws://172.16.4.166:8080';
     const WS_VIDEO_SERVER = 'ws://172.16.16.88:4589';
-    const VIDEOFRAMERATE = 25;
+    const VIDEO_FRAME_RATE = 25;
     const RENDER_INTERVAL = 20;
+    const MAX_FRAME_NUM = 100;
 
-    var canvasDict = new Dictionary();
-    var layerDict = new Dictionary();
-    var videoFrame1 = new VideoFrame({id: "videoplayer1", frameRate: VIDEOFRAMERATE});
-    var videoFrame2 = new VideoFrame({id: "videoplayer2", frameRate: VIDEOFRAMERATE});
+    var drawDataDict = new Dictionary();
     var videoPlayer1 = document.getElementById("videoplayer1");
     var videoPlayer2 = document.getElementById("videoplayer2");
+    var drawDiv = document.getElementById("divCanvas");
 
-    function addVidePlayerEvent(videoPlayer, ev, func) {
+    function addVideoPlayerEvent(videoPlayer, ev, func) {
         videoPlayer.addEventListener(ev, func, false);
     }
 
@@ -69,15 +59,13 @@
 
     var removeAllDrawObjects = function () {
         // $("#divCanvas").empty();
-        var divCanvas = document.getElementById("divCanvas");
-        while (divCanvas.childNodes.length > 0) {
-            divCanvas.removeChild(divCanvas.firstChild);
+        while (drawDiv.childNodes.length > 0) {
+            drawDiv.removeChild(drawDiv.firstChild);
         }
-        canvasDict.clear();
     }
 
-    addVidePlayerEvent(videoPlayer1, "canplaythrough", removeAllDrawObjects);
-    addVidePlayerEvent(videoPlayer2, "canplaythrough", removeAllDrawObjects);
+    addVideoPlayerEvent(videoPlayer1, "canplaythrough", removeAllDrawObjects);
+    addVideoPlayerEvent(videoPlayer2, "canplaythrough", removeAllDrawObjects);
 
     function threadSleep(sleepDuration) {
         var now = new Date().getTime();
@@ -102,24 +90,28 @@
         return result;
     }
 
-    function drawRectByTime(second) {
-        removeAllDrawObjects();
+    function getCurrentVideoPlayer() {
         var player = videoPlayer1.style.zIndex == 1 ? videoPlayer1 : videoPlayer2;
-        console.log("current Time:%s,palyer:%s,layerDict.len:", second, videoPlayer1.style.zIndex == 1 ? "player1" : " === player2", layerDict.size());
-        var timeObj = layerDict.get(second);
+        return player;
+    }
+
+    function getCurrentFrameNum() {
+        var num = Math.floor(getCurrentVideoPlayer().currentTime.toFixed(3) * VIDEO_FRAME_RATE).toFixed(0);
+        return num;
+    }
+
+    function drawByFrame(second) {
+        var player = getCurrentVideoPlayer();
+        console.log("current Time:%s, player:%s, drawDataDict.len:%s", second, player.id, drawDataDict.size());
+        var timeObj = drawDataDict.get(second);
         if (timeObj == undefined) {
             return;
         }
-        var i = 1;
+
+        removeAllDrawObjects();
+        var lineWidth = 2;
         for (var index in timeObj.objects) {
             var item = timeObj.objects[index];
-            var cvs = canvasDict.get(item.objid)
-            if (cvs != null) {
-                cvs.style.left = scaleXByVideo(player, item.x);
-                cvs.style.top = scaleYByVideo(player, item.y);
-                {#                console.log("---> move rect left:%s, top:%s ,current time:%s", cvs.style.left, cvs.style.top, second);#}
-                continue;
-            }
             var canvas = document.createElement("canvas");
             var ctx = canvas.getContext("2d");
             var rectWidth = scaleXByVideo(player, item.width);
@@ -129,14 +121,14 @@
             canvas.height = rectHeight;
             canvas.style.left = scaleXByVideo(player, item.x);
             canvas.style.top = scaleYByVideo(player, item.y);
-            canvasDict.put(item.objid, canvas);
-            document.getElementById("divCanvas").appendChild(canvas);
+            canvas.style.position = "absolute";
+            drawDiv.appendChild(canvas);
             {#            $('#divCanvas').append(canvas);#}
-            {#            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s", canvas.style.left,#}
-            {#                canvas.style.top, canvas.width, canvas.height, second);#}
+            {#            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s,obj_id:%s",#}
+            {#                canvas.style.left, canvas.style.top, canvas.width, canvas.height, second, item.objid);#}
 
             ctx.strokeStyle = item.drawcolor;
-            ctx.lineWidth = i++;
+            ctx.lineWidth = lineWidth;
             ctx.strokeRect(0, 0, rectWidth, rectHeight);
 
             var txtStartX = rectWidth + 10, txtStartY = 10;
@@ -160,58 +152,72 @@
     {#    socket.on('server', function (data) {#}
     {#        console.log(data);#}
     {#        dataList.push(data);#}
-    {#        layerDict.clear();#}
+    {#        drawDataDict.clear();#}
     {#        var layerData = data.overlays;#}
     {#        for (var item of layerData) {#}
-    {#            layerDict.put(item.time, new TimeObject(item));#}
+    {#            drawDataDict.put(item.time, new TimeObject(item));#}
     {#        }#}
-    {#        console.log("layerDict.len:" + layerDict.size());#}
+    {#        console.log("drawDataDict.len:" + drawDataDict.size());#}
     {#        socket.emit('client', {my: 'data'});#}
     {#    });#}
 
     //structure data
-    var wsdata = new WebSocket(WS_DATA_SERVER);
-    wsdata.onopen = function () {
-        console.log("web socket connected succeed");
-    };
-    wsdata.onmessage = function (evt) {
-        var data = JSON.parse(evt.data);
+    function start_ws_data(url) {
+        var wsdata = new WebSocket(url);
+        wsdata.onopen = function () {
+            console.log("web socket connected succeed");
+        };
+        wsdata.onmessage = function (evt) {
+            var data = JSON.parse(evt.data);
+            if (!data) {
+                return;
+            }
+            parseData(data);
+        }
+        return wsdata;
+    }
+
+    function parseData(data) {
         console.log(data);
-        {#        dataList.push(data);#}
-        layerDict.clear();
         var layerData = data.overlays;
+        if (!(data && layerData)) {
+            return;
+        }
+        ;
+        drawDataDict.clear();
         for (var index in layerData) {
             var item = layerData[index];
-            layerDict.put(item.time, new TimeObject(item));
+            drawDataDict.put(item.time, new TimeObject(item));
         }
     }
 
-    setInterval(function () {
-        var currentFrame = videoPlayer1.style.zIndex == 1 ? videoFrame1.get() : videoFrame2.get();
-        currentFrame = currentFrame.toFixed(0);
-        drawRectByTime(currentFrame);
-    }, RENDER_INTERVAL);
+    //structure video stream
+    function start_ws_video(url) {
+        var wsVideo = new WebSocket(url);
+        wsVideo.onopen = function () {
+            console.log("web socket connected succeed");
+            wsVideo.send('startvideo=rtsp://172.16.16.88:4588/vs/rp/A414374375B6/1/1/');
+        };
 
-    //video data
-    var wsVideo = new WebSocket(WS_VIDEO_SERVER);
-    wsVideo.onopen = function () {
-        console.log("web socket connected succeed");
-        wsVideo.send('startvideo=rtsp://172.16.16.88:4588/vs/rp/A414374375B6/1/1/');
-    };
+        wsVideo.onerror = function (error) {
+            console.log("web socket connected failed" + error);
+        };
+        wsVideo.onmessage = function (evt) {
+            var data = JSON.parse(evt.data);
+            if (!data || data.code != 200 || data.filename == '' || data.filename == null) {
+                return;
+            }
 
-    wsVideo.onerror = function (error) {
-        console.log("web socket connected failed" + error);
-    };
-    wsVideo.onmessage = function (evt) {
-        var data = JSON.parse(evt.data);
-        if (data.code == "200" && data.filename != null) {
             if (videoPlayer1.src == "") {
                 videoPlayer1.src = data.filename;
                 return;
             }
+            //用于让server能有数据返回，正式对接
+            //去除以下代码
             if (wsdata.readyState == WebSocket.OPEN) {
                 wsdata.send(JSON.stringify({my: 'data'}));
             }
+            {#                parseData(data);#}
             if (!videoPlayer1.paused) {
                 videoPlayer2.src = data.filename;
                 videoPlayer2.style.zIndex = 1;
@@ -223,6 +229,15 @@
             }
         }
     }
+
+    var wsdata = start_ws_data(WS_DATA_SERVER);
+    start_ws_video(WS_VIDEO_SERVER);
+
+    setInterval(function () {
+        var currentFrame = getCurrentFrameNum();
+        drawByFrame(currentFrame);
+    }, RENDER_INTERVAL);
+
 </script>
 
 </body>

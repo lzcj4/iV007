@@ -27,25 +27,11 @@ function threadSleep(sleepDuration) {
     while (new Date().getTime() < now + sleepDuration) { /* do nothing */ }
 }
 
-var x1 = 0;
-var y1 = 0;
-var x2 = 100;
-var y2 = 100;
+
 var i = 0;
-var step = 10;
-var maxPos = 500;
 
 function getData() {
-
     imgUrl = i % 2 == 0 ? "http://127.0.0.1:8000/static/images/ship.png" : "http://127.0.0.1:8000/static/images/ship2.png";
-    p_name = i % 2 == 0 ? "张三" : "李四";
-    p_sex = i % 2 == 0 ? "男" : "女";
-    p_age = i % 2 == 0 ? 20 : 80;
-    p_width = i % 2 == 0 ? 200 : 200;
-    p_height = i % 2 == 0 ? 200 : 200;
-    x = i % 2 == 0 ? x1 : x2;
-    y = i++ % 2 == 0 ? y1 : y2;
-
     var startX = 150,
         startY = 20,
         posStep = 200;
@@ -92,21 +78,10 @@ function getData() {
 
     data = {
         'id': i,
-        'name': p_name,
-        'sex': p_sex,
-        'age': p_age,
         'icon': imgUrl,
-        'x': x,
-        'y': y,
-        'width': p_width,
-        'height': p_height,
         'overlays': layerObjs,
     };
     console.log(data);
-    x1 += step;
-    y1 += step;
-    x2 += step;
-    y2 += step;
     return JSON.stringify(data);
 }
 
