@@ -129,20 +129,21 @@
 
             ctx.strokeStyle = item.drawcolor;
             ctx.lineWidth = lineWidth;
-            ctx.strokeRect(0, 0, rectWidth, rectHeight);
+            //边框被切问题
+            //https://stackoverflow.com/questions/10003468/html5-canvas-and-strokerect-lines-narrower
+            ctx.strokeRect(1, 1, rectWidth - 2, rectHeight - 2);
 
             var txtStartX = rectWidth + 10, txtStartY = 10;
             var fontSize = 10;
             for (var index in item.descs) {
-                ctx.fillStyle = "";
                 var desc = item.descs[index];
-                ctx.fillStyle = "#FF3E4265";
+                ctx.fillStyle = "gray";
                 ctx.fillRect(txtStartX, txtStartY - 10, maxTexLen, parseInt(fontSize, 10) + 3);
-                ctx.fillStyle = item.drawcolor;
+               ctx.fillStyle = item.drawcolor;
+{#                ctx.fillStyle = "white";#}
                 ctx.fontSize = fontSize;
                 ctx.fillText(desc.descvalue, txtStartX, txtStartY);
                 txtStartY += 20;
-                ctx.fillStyle = "";
             }
         }
     }
