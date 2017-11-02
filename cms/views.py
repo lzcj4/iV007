@@ -29,10 +29,17 @@ def file_upload(request):
         if not srcFile:
             return HttpResponse("no files for upload!")
 
-        with open(os.path.join("E:\\upload", srcFile.name), 'wb+') as destFile:
-            for chunk in srcFile.chunks():
-                destFile.write(chunk)
-        return HttpResponse(json.dumps({'upload': "succeed"}))
+        try:
+            with open(os.path.join("E:\\upload", srcFile.name), 'wb+') as destFile:
+                for chunk in srcFile.chunks():
+                    destFile.write(chunk)
+            print("File upload succeed:{}".format(os.path.join("E:\\upload", srcFile.name)))
+            return HttpResponse(json.dumps({'upload': "succeed"}))
+        except IOError:
+            print("File upload IO error")
+        else:
+            print("File upload unknown error")
+
     else:
         return render(request, "FileUpload.html")
 

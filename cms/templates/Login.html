@@ -1,5 +1,13 @@
 {% extends "base.html" %}
+
+{% block header %}
+    {% load static %}
+    <script src="{% static "js/vue.js" %}"></script>
+{% endblock header %}
+
+
 {% block content %}
+
     <form method="post">
         {% csrf_token %}
         <table>
@@ -15,6 +23,22 @@
                 <td colspan="2"><input type="submit" content="提交"/></td>
             </tr>
         </table>
+
+        <div id="app">
+         <span  id="app" v-html="message">
+            鼠标悬停几秒钟查看此处动态绑定的提示信息！
+          </span>
+        </div>
     </form>
+
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                message: 'Hello Vue!'
+            }
+        })
+    </script>
 
 {% endblock content %}

@@ -51,12 +51,12 @@ function Dictionary() {
     };
 }
 
-function DescObject(props) {
+function DescItem(props) {
     this.desckey = props ? props.desckey : "";
     this.descvalue = props ? props.descvalue : "";
 }
 
-function RectObject(props) {
+function RectItem(props) {
     if (!props) {
         return;
     }
@@ -70,19 +70,19 @@ function RectObject(props) {
     this.descs = new Array();
     for (var index in props.descs) {
         var item = props.descs[index];
-        this.descs.push(new DescObject(item));
+        this.descs.push(new DescItem(item));
     }
 }
 
-function TimeObject(props) {
+function FrameItem(props) {
     if (!props) {
         return;
     }
-    this.time = props.time;
+    this.frame = props.frame;
     this.objects = new Array();
     for (var index in props.objects) {
         var item = props.objects[index];
-        this.objects.push(new RectObject(item));
+        this.objects.push(new RectItem(item));
     }
     this.get = function (index) {
         if (index >= 0 && index < this.objects.length) {

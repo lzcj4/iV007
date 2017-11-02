@@ -43,35 +43,41 @@ function getData() {
     var descriptions = ["男人", "红色丰田", "IBM笔记本", "白色办公桌", "断裂椅子"]
     var layerObjs = [];
 
-    for (i = 0; i < 100; i++) {
-        var itemObj = { "time": i, "objects": [] };
+    for (i = 0; i < 150; i++) {
+        var itemObj = { "frame": i, "objects": [] };
         startX = 100;
         startY = 20 + i * 5;
         startWidth = 50;
         startHeight = 50;
-        for (j = 0; j < 5; j++) {
-            itemObj.objects.push({
-                "x": startX,
-                "y": startY,
-                "width": startWidth,
-                "height": startHeight,
-                "objid": "objid" + i + j,
-                "objtype": "car",
-                "drawcolor": colors[j],
-                "descs": [{
-                        "desckey": "类型",
-                        "descvalue": objects[j]
-                    },
-                    {
-                        "desckey": "车辆车型",
-                        "descvalue": descriptions[j]
-                    }
-                ]
-            });
-            startX += posStep;
-            startWidth += sizeStep;
-            startHeight += sizeStep;
+        for (z = 0; z < 3; z++) {
+            startX = 100;
+            startY += 80;
+
+            for (j = 0; j < 5; j++) {
+                itemObj.objects.push({
+                    "x": startX,
+                    "y": startY,
+                    "width": startWidth,
+                    "height": startHeight,
+                    "objid": "objid" + i + z + j,
+                    "objtype": "car",
+                    "drawcolor": colors[j],
+                    "descs": [{
+                            "desckey": "类型",
+                            "descvalue": objects[j]
+                        },
+                        {
+                            "desckey": "车辆车型",
+                            "descvalue": descriptions[j]
+                        }
+                    ]
+                });
+                startX += posStep;
+                startWidth += sizeStep;
+                startHeight += sizeStep;
+            }
         }
+
 
         layerObjs.push(itemObj);
     }

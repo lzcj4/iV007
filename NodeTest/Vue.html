@@ -1,0 +1,48 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>菜鸟教程(runoob.com)</title>
+    <script src="./static/js/vue.js"></script>
+    <script src="./static/js/jquery-3.2.1.min.js"></script>
+</head>
+
+<body>
+    <form id="app" v-on:submit.prevent="beforeSubmit">
+        <div>
+
+            <input type="text/input" v-model="message"></input>
+        </div>
+        <input type="text/input" v-model="message"></input>
+        <input type="submit"></input>
+    </form>
+
+
+    <!-- JavaScript 代码需要放在尾部（指定的HTML元素之后） -->
+    <script>
+        function isNum(num) {
+            return typeof num == "number" && num.constructor == Number;
+        }
+        $(function() {
+            window.vm = new Vue({
+                el: '#app',
+                data: {
+                    message: 'Hello 123123!'
+                },
+                methods: {
+                    beforeSubmit: function() {
+                        var i = parseInt(this.$data.message);
+                        console.log(i);
+                        if (isNum(i)) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
