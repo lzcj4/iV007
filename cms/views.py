@@ -6,6 +6,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from cms.models import User
 
@@ -27,7 +28,7 @@ def file_upload(request):
     if request.method == "POST":
         srcFile = request.FILES.get("file", None)
         if not srcFile:
-            return HttpResponse("no files for upload!")
+            return HttpResponse(json.dumps({'upload': "no files for upload!"}))
 
         try:
             with open(os.path.join("E:\\upload", srcFile.name), 'wb+') as destFile:
@@ -36,12 +37,21 @@ def file_upload(request):
             print("File upload succeed:{}".format(os.path.join("E:\\upload", srcFile.name)))
             return HttpResponse(json.dumps({'upload': "succeed"}))
         except IOError:
-            print("File upload IO error")
+            return HttpResponse(json.dumps({'upload': "File upload IO error"}))
         else:
-            print("File upload unknown error")
+            return HttpResponse(json.dumps({'upload': "File upload unknown error"}))
 
     else:
         return render(request, "FileUpload.html")
+
+
+def file_merge(request):
+    if request.method == "POST":
+        jArray = json.loads(request.body)
+        for item in jArray:
+            pass
+
+        return HttpResponse(json.dumps({'code': 200, 'msg': 'succeed'}))
 
 
 def center(request):

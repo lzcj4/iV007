@@ -9,6 +9,6 @@ urlpatterns = [
     url(r'^camera/group/add/$', views.add_camera_group, name="add_camera_group"),
     url(r'^camera/add/$', views.add_camera, name="add_camera"),
     url(r'^file/upload/', views.file_upload, name="file_upload"),
-
+    url(r'^file/merge/', views.file_merge, name="file_merge"),
     url(r'^video/playback/$', views.video_playback, name="video_playback"),
 ]
