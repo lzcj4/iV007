@@ -48,19 +48,29 @@ def file_upload(request):
     if request.method == "POST":
         folder_name = request.POST.get("foldername")
         file_num = request.POST.get("filenum")
+        file_len = request.POST.get("filelen")
         src_file = request.FILES.get("file", None)
-        if not folder_name or not file_num or not src_file:
+        file_name = file_num
+        if not folder_name or not src_file:
             return HttpResponse(json.dumps({'code': 502, 'msg': "no files for upload!"}))
 
+        # if not file_name or file_name == '0':
+        #     file_name = src_file.name
+        # else:
+        file_name += '.tmp'
         try:
             folder_path = get_upload_folder(folder_name)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path, exist_ok=True)
-            with open(os.path.join(folder_path, file_num + '.tmp'), 'wb+') as destFile:
+            det_file = os.path.join(folder_path, file_name)
+            if os.path.exists(det_file) and os.stat(det_file).st_size == file_len:
+                return HttpResponse(json.dumps({'code': 200, 'msg': " +++ lfile already upload"}))
+
+            with open(det_file, 'wb+') as destFile:
                 for chunk in src_file.chunks():
                     destFile.write(chunk)
-            print("File upload succeed:{}".format(os.path.join("E:\\upload", src_file.name)))
-            return HttpResponse(json.dumps({'code': 200,'msg': " upload succeed"}))
+            print("File upload succeed:{}".format(det_file))
+            return HttpResponse(json.dumps({'code': 200, 'msg': " upload succeed"}))
         except IOError:
             return HttpResponse(json.dumps({'code': 502, 'msg': "File upload IO error"}))
         else:
@@ -82,6 +92,7 @@ def file_merge(request):
             for item in file_info:
                 with open(os.path.join(folder_path, str(item['num']) + '.tmp'), "rb") as infile:
                     outfile.write(infile.read())
+                    outfile.flush()
 
         return HttpResponse(json.dumps({'code': 200, 'msg': 'merge succeed'}))
 
