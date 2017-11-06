@@ -29,42 +29,59 @@ def get_upload_folder(folder_name):
     return folder_path
 
 
-def file_merge(request):
-    if request.method == "GET":
-        folder_name = request.GET.get("foldername")
-        file_infos = {}
-        if not folder_name:
+@csrf_exempt
+def file_query(request):
+    if request.method == "POST":
+        jObj = json.loads(request.body)
+        folder_name = jObj["foldername"]
+        if folder_name:
             folder_path = get_upload_folder(folder_name)
-            files = os.listdir(folder_path)
-            for f in files:
-                f_size = os.stat(os.path.join(folder_path, f)).st_size
-                file_infos[f] = f_size
-            return HttpResponse(json.dumps({'code': 200, 'msg': "succeed", 'files': file_infos}))
+            file_dict = get_file_list(folder_path)
+            return HttpResponse(json.dumps({'code': 200, 'msg': "succeed", 'files': file_dict}))
         return HttpResponse(json.dumps({'code': 200, 'msg': "folder is not existed"}))
+
+
+def get_file_list(folder_path):
+    file_dict = {}
+    if folder_path and os.path.exists(folder_path):
+        files = os.listdir(folder_path)
+        for f in files:
+            f_size = os.stat(os.path.join(folder_path, f)).st_size
+            file_dict[f] = f_size
+    return file_dict
 
 
 @csrf_exempt
 def file_upload(request):
     if request.method == "POST":
-        folder_name = request.POST.get("foldername")
-        file_num = request.POST.get("filenum")
-        file_len = request.POST.get("filelen")
+        file_info = request.POST.get("fileinfo")
+        json_file_info = json.loads(file_info)
+        folder_name = json_file_info["foldername"]
+        file_name = json_file_info["filename"]
+        chunk_count = json_file_info["chunkcount"]
+        chunk_no = json_file_info["chunkno"]
+        file_len = int(json_file_info["filelen"])
+
         src_file = request.FILES.get("file", None)
-        file_name = file_num
+
         if not folder_name or not src_file:
             return HttpResponse(json.dumps({'code': 502, 'msg': "no files for upload!"}))
 
-        # if not file_name or file_name == '0':
-        #     file_name = src_file.name
-        # else:
-        file_name += '.tmp'
+        if chunk_count != chunk_no:
+            file_name = '{0}.tmp'.format(chunk_no)
+
         try:
             folder_path = get_upload_folder(folder_name)
+            file_dict = get_file_list(folder_path)
+            exist_file_size = file_dict.get(file_name)
+            if exist_file_size == file_len:
+                return HttpResponse(json.dumps({'code': 200, 'msg': u" file:{0} already existed".format(file_name)}))
+
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path, exist_ok=True)
             det_file = os.path.join(folder_path, file_name)
             if os.path.exists(det_file) and os.stat(det_file).st_size == file_len:
-                return HttpResponse(json.dumps({'code': 200, 'msg': " +++ lfile already upload"}))
+                return HttpResponse(json.dumps({'code': 200, 'msg': u" file:{0} already existed".format(file_name)}))
 
             with open(det_file, 'wb+') as destFile:
                 for chunk in src_file.chunks():
@@ -90,7 +107,7 @@ def file_merge(request):
         folder_path = get_upload_folder(folder_name)
         with open(os.path.join(folder_path, file_name), 'wb+') as outfile:
             for item in file_info:
-                with open(os.path.join(folder_path, str(item['num']) + '.tmp'), "rb") as infile:
+                with open(os.path.join(folder_path, "{0}.tmp".format(item['chunkno'])), "rb") as infile:
                     outfile.write(infile.read())
                     outfile.flush()
 
