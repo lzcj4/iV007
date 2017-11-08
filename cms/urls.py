@@ -1,5 +1,6 @@
 from django.conf.urls import url
 
+
 from cms import views
 
 app_name = "cms"
@@ -8,8 +9,8 @@ urlpatterns = [
     url(r'^center/$', views.center, name="center"),
     url(r'^camera/group/add/$', views.add_camera_group, name="add_camera_group"),
     url(r'^camera/add/$', views.add_camera, name="add_camera"),
-    url(r'^file/query/$', views.file_query, name="file_query"),
+    url(r'^file/list/$', views.file_list, name="file_list"),
     url(r'^file/upload/', views.file_upload, name="file_upload"),
-    url(r'^file/merge/', views.file_merge, name="file_merge"),
+    url(r'^file/concat/', views.file_concat, name="file_concat"),
     url(r'^video/playback/$', views.video_playback, name="video_playback"),
 ]
