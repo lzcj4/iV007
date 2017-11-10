@@ -29,6 +29,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -105,6 +106,13 @@ FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "asgiref.inmemory.ChannelLayer",
+        "ROUTING": "iV007.routing.channel_routing",
+    },
+}
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 

@@ -48,17 +48,17 @@ def get_upload_folder(folder_name):
 @csrf_exempt
 def file_list(request):
     if request.method == http_post:
-        jObj = json.loads(request.body)
-        folder_name = jObj[upload_folder_name]
+        req_infos = json.loads(request.body)
+        folder_name = req_infos[upload_folder_name]
         if folder_name:
             folder_path = get_upload_folder(folder_name)
             file_dict = get_file_list(folder_path)
-            jArray = []
+            info_list = []
             for k, v in file_dict.items():
-                jArray.append({upload_file_name: k, upload_chunk_len: v})
+                info_list.append({upload_file_name: k, upload_chunk_len: v})
 
             return HttpResponse(
-                json.dumps({error_code: error_code_succeed, error_msg: "succeed", upload_file_infos: jArray}))
+                json.dumps({error_code: error_code_succeed, error_msg: "succeed", upload_file_infos: info_list}))
         return HttpResponse(json.dumps({error_code: error_code_succeed, error_msg: "folder is not existed"}))
 
 
@@ -88,8 +88,7 @@ def file_upload(request):
         if not folder_name or not src_file:
             return HttpResponse(json.dumps({error_code: 502, 'msg': "no files for upload!"}))
 
-        if chunk_count != 1:
-            file_name = upload_temp_file_format.format(chunk_no)
+        file_name = upload_temp_file_format.format(chunk_no)
 
         try:
             folder_path = get_upload_folder(folder_name)
@@ -123,14 +122,15 @@ def file_upload(request):
 @csrf_exempt
 def file_concat(request):
     if request.method == http_post:
-        jArray = json.loads(request.body)
-        folder_name = jArray[upload_folder_name]
-        file_name = jArray[upload_file_name]
-        file_info = jArray[upload_file_infos]
+        req_infos = json.loads(request.body)
+        folder_name = req_infos[upload_folder_name]
+        file_name = req_infos[upload_file_name]
+        file_info = req_infos[upload_file_infos]
         chunk_no_list = sorted(fi[upload_chunk_no] for fi in file_info)
 
         folder_path = get_upload_folder(folder_name)
         is_all_concated = True
+
         with open(os.path.join(folder_path, file_name), 'wb+') as outfile:
             for item in chunk_no_list:
                 src_file_name = upload_temp_file_format.format(item)
@@ -152,6 +152,51 @@ def file_concat(request):
                 except IOError as err:
                     print("Remove chunk file {0} failed".format(chunk_file))
         return HttpResponse(json.dumps({error_code: 200, error_msg: 'concat succeed'}))
+
+
+channel_dic = {}
+
+
+def on_ws_message(message):
+    cmd = message.content['path']
+    txt = message.content['text']
+    if not cmd or not txt:
+        message.reply_channel.send("invalid ws url or empty text")
+        return
+    ws_concat_file(txt, message.reply_channel)
+
+
+def ws_concat_file(txt, channel):
+    req_infos = json.loads(txt)
+    folder_name = req_infos[upload_folder_name]
+    file_name = req_infos[upload_file_name]
+    file_info = req_infos[upload_file_infos]
+    chunk_no_list = sorted(fi[upload_chunk_no] for fi in file_info)
+    folder_path = get_upload_folder(folder_name)
+    is_all_concated = True
+    with open(os.path.join(folder_path, file_name), 'wb+') as outfile:
+        for item in chunk_no_list:
+            src_file_name = upload_temp_file_format.format(item)
+            try:
+                with open(os.path.join(folder_path, src_file_name), "rb") as infile:
+                    outfile.write(infile.read())
+                    outfile.flush()
+                    print("File concat {0} -> {1} succeed".format(src_file_name, file_name))
+                    # channel.send({'text': {'src': src_file_name, 'dst': file_name}})
+                    channel.send({'text': src_file_name})
+                    is_all_concated &= True
+            except IOError as err:
+                is_all_concated &= False
+
+    if is_all_concated:
+        for item in chunk_no_list:
+            chunk_file = os.path.join(folder_path, upload_temp_file_format.format(item))
+            try:
+                os.remove(chunk_file)
+                print("Remove chunk file {0}".format(chunk_file))
+            except IOError as err:
+                print("Remove chunk file {0} failed".format(chunk_file))
+    channel.send("File {0} concat completed".format(file_name))
 
 
 def center(request):
