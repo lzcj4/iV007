@@ -154,14 +154,11 @@ def file_concat(request):
         return HttpResponse(json.dumps({error_code: 200, error_msg: 'concat succeed'}))
 
 
-channel_dic = {}
-
-
 def on_ws_message(message):
     cmd = message.content['path']
     txt = message.content['text']
     if not cmd or not txt:
-        message.reply_channel.send("invalid ws url or empty text")
+        message.reply_channel.send({'text': "invalid ws url or empty text"})
         return
     ws_concat_file(txt, message.reply_channel)
 
@@ -175,6 +172,8 @@ def ws_concat_file(txt, channel):
     folder_path = get_upload_folder(folder_name)
     is_all_concated = True
     with open(os.path.join(folder_path, file_name), 'wb+') as outfile:
+        file_len = len(chunk_no_list)
+        file_count = 1
         for item in chunk_no_list:
             src_file_name = upload_temp_file_format.format(item)
             try:
@@ -183,7 +182,10 @@ def ws_concat_file(txt, channel):
                     outfile.flush()
                     print("File concat {0} -> {1} succeed".format(src_file_name, file_name))
                     # channel.send({'text': {'src': src_file_name, 'dst': file_name}})
-                    channel.send({'text': src_file_name})
+                    channel.send({'text': json.dumps({'code': 200, 'file_len': file_len, 'progress': file_count,
+                                                      'msg': "File concat {0} -> {1} succeed".format(src_file_name,
+                                                                                                     file_name)})})
+                    file_count += 1
                     is_all_concated &= True
             except IOError as err:
                 is_all_concated &= False
@@ -196,7 +198,7 @@ def ws_concat_file(txt, channel):
                 print("Remove chunk file {0}".format(chunk_file))
             except IOError as err:
                 print("Remove chunk file {0} failed".format(chunk_file))
-    channel.send("File {0} concat completed".format(file_name))
+    channel.send({'text': json.dumps({'code': 200, 'msg': "File concat {0} succeed".format(file_name)})})
 
 
 def center(request):
