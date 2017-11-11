@@ -1,0 +1,235 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width">
+    <script src="./DataItem.js"></script>
+</head>
+
+<body>
+
+<div style="position:relative;left:10%;top:10%">
+
+    <div id="divCanvas"
+         style="position:absolute;left:0;top:0;z-index: 10;width: 1280px;height: 720px;">
+        <div style="position:relative;left:40%;top:40%">
+            <h2>Loading</h2>
+        </div>
+    </div>
+
+    <div style="position:absolute;top:0;left:0; ">
+        <video id="videoplayer1" autoplay
+               style="position:absolute;top:0;left:0; width: 1280px;height: 720px;z-index: 1 ">
+
+          <!--<source src="test1.mp4" type="video/mp4">-->
+        </video>
+
+        <video id="videoplayer2" autoplay
+               style="position:absolute;top:0;left:0; width: 1280px;height: 720px;z-index: 0 ">
+                <!--<source src="test1.mp4" type="video/mp4">-->
+        </video>
+    </div>
+
+</div>
+
+<script>
+    'use strict';
+    //    const WS_VIDEO_SERVER = 'ws://172.16.16.88:4559';
+    const WS_VIDEO_SERVER = 'ws://127.0.0.1:8080';
+    const VIDEO_FRAME_RATE = 25;
+    const RENDER_INTERVAL = 20;
+    const MAX_FRAME_NUM = 100;
+
+    var drawDataDict = new Dictionary();
+    var videoPlayer1 = document.getElementById("videoplayer1");
+    var videoPlayer2 = document.getElementById("videoplayer2");
+    var drawDiv = document.getElementById("divCanvas");
+
+    function addVideoPlayerEvent(videoPlayer, ev, func) {
+        videoPlayer.addEventListener(ev, func, false);
+    }
+
+    function scaleXByVideo(videoPlayer, x) {
+        var result = 0;
+        if (!videoPlayer || videoPlayer.videoWidth == 0) {
+            return result;
+        }
+        result = x / videoPlayer.videoWidth * videoPlayer.clientWidth;
+        return result;
+    }
+
+    function scaleYByVideo(videoPlayer, y) {
+        var result = 0;
+        if (!videoPlayer || videoPlayer.videoHeight == 0) {
+            return result;
+        }
+        result = y / videoPlayer.videoHeight * videoPlayer.clientHeight;
+        return result;
+    }
+
+    var removeAllDrawObjects = function () {
+        // $("#divCanvas").empty();
+        while (drawDiv.childNodes.length > 0) {
+            drawDiv.removeChild(drawDiv.firstChild);
+        }
+    }
+
+    addVideoPlayerEvent(videoPlayer1, "canplaythrough", removeAllDrawObjects);
+    addVideoPlayerEvent(videoPlayer2, "canplaythrough", removeAllDrawObjects);
+
+    function threadSleep(sleepDuration) {
+        var now = new Date().getTime();
+        while (new Date().getTime() < now + sleepDuration) { /* do nothing */
+        }
+    }
+
+    function getMaxTextLen(rectObj, ctx) {
+        var result = 0;
+        if (!(rectObj && ctx)) {
+            result = 50;
+            return result;
+        }
+
+        for (var index in rectObj.descs) {
+            var item = rectObj.descs[index];
+            var width = ctx.measureText(item.descvalue).width;
+            if (width > result) {
+                result = width;
+            }
+        }
+        return result;
+    }
+
+    function getCurrentVideoPlayer() {
+        var player = videoPlayer1.style.zIndex == 1 ? videoPlayer1 : videoPlayer2;
+        return player;
+    }
+
+    function getCurrentFrameNum() {
+        var num = Math.floor(getCurrentVideoPlayer().currentTime.toFixed(3) * VIDEO_FRAME_RATE).toFixed(0);
+        return num;
+    }
+
+    function drawByFrame(frameNum) {
+        var result = false;
+        var player = getCurrentVideoPlayer();
+        console.log("current Frame:%s, player:%s, drawDataDict.len:%s", frameNum, player.id, drawDataDict.size());
+        var frameItem = drawDataDict.get(frameNum);
+        if (frameItem == undefined) {
+            return result;
+        }
+
+        removeAllDrawObjects();
+        var lineWidth = 2;
+        for (var index in frameItem.objects) {
+            var item = frameItem.objects[index];
+            var canvas = document.createElement("canvas");
+            var ctx = canvas.getContext("2d");
+            var rectWidth = scaleXByVideo(player, item.width);
+            var rectHeight = scaleYByVideo(player, item.height);
+            if (rectWidth == 0 || rectHeight == 0) {
+                continue;
+            }
+            var maxTexLen = getMaxTextLen(item, ctx) + 10;//10 for padding
+            canvas.width = rectWidth + maxTexLen;
+            canvas.height = rectHeight;
+            canvas.style.left = scaleXByVideo(player, item.x);
+            canvas.style.top = scaleYByVideo(player, item.y);
+            canvas.style.position = "absolute";
+            drawDiv.appendChild(canvas);
+//            $('#divCanvas').append(canvas);
+//            console.log("++++ add canvas left:%s , top:%s , width:%s, height:%s , current time:%s,obj_id:%s",
+//                canvas.style.left, canvas.style.top, canvas.width, canvas.height, second, item.objid);
+
+            ctx.strokeStyle = item.drawcolor;
+            ctx.lineWidth = lineWidth;
+            //边框被切问题
+            //https://stackoverflow.com/questions/10003468/html5-canvas-and-strokerect-lines-narrower
+            ctx.strokeRect(1, 1, rectWidth - 2, rectHeight - 2);
+
+            var txtStartX = rectWidth + 10, txtStartY = 10;
+            var fontSize = 10;
+            for (var index in item.descs) {
+                var desc = item.descs[index];
+                ctx.fillStyle = "gray";
+                ctx.fillRect(txtStartX, txtStartY - 10, maxTexLen, parseInt(fontSize, 10) + 3);
+                ctx.fillStyle = item.drawcolor;
+//                            ctx.fillStyle = "white";
+                ctx.fontSize = fontSize;
+                ctx.fillText(desc.descvalue, txtStartX, txtStartY);
+                txtStartY += 20;
+            }
+            result = true;
+        }
+        return result;
+    }
+
+    function parseData(data) {
+        console.log(data);
+        var layerData = data.overlays;
+        if (!(data && layerData)) {
+            return;
+        }
+        ;
+        drawDataDict.clear();
+        for (var index in layerData) {
+            var item = layerData[index];
+            drawDataDict.put(item.frame, new FrameItem(item));
+        }
+    }
+
+    //structure video stream
+    function start_ws_video(url) {
+        var wsVideo = new WebSocket(url);
+        wsVideo.onopen = function (evt) {
+            console.log("video stream web socket connected succeed");
+            wsVideo.send("startvideo=rtsp://172.16.16.88:4558/vs/rp/CE:1B:45:CB:45:0E/1/1/");
+        };
+
+        wsVideo.onerror = function (evt) {
+            console.log("video stream web socket connected failed" + evt.type);
+        };
+        wsVideo.onmessage = function (evt) {
+            var data = JSON.parse(evt.data);
+            if (!data || data.code != 200 || data.filename == '' || data.filename == null) {
+                console.log("Get video url failed:%s", evt.data);
+                return;
+            }
+
+            if (videoPlayer1.src == "") {
+                videoPlayer1.src = data.filename;
+                return;
+            }
+            //用于让server能有数据返回，正式对接
+            //去除以下代码
+//            if (wsdata.readyState == WebSocket.OPEN) {
+//                wsdata.send(JSON.stringify({my: 'data'}));
+//            }
+            parseData(data);
+            if (!videoPlayer1.paused) {
+                videoPlayer2.src = data.filename;
+                videoPlayer2.style.zIndex = 1;
+                videoPlayer1.style.zIndex = 0;
+            } else {
+                videoPlayer1.src = data.filename;
+                videoPlayer1.style.zIndex = 1;
+                videoPlayer2.style.zIndex = 0;
+            }
+        }
+    }
+
+    //    var wsdata = start_ws_data(WS_DATA_SERVER);
+    start_ws_video(WS_VIDEO_SERVER);
+
+    setInterval(function () {
+        var currentFrame = getCurrentFrameNum();
+        var startDate = new Date();
+        if (drawByFrame(currentFrame)) {
+            var endDate = new Date();
+            console.log("drawByFrame invoked elapsed:%s MS", endDate - startDate);
+        }
+
+    }, RENDER_INTERVAL);
+
+</script>
+
+</body>
+</html>

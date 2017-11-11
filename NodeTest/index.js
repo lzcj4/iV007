@@ -85,6 +85,8 @@ function getData() {
     data = {
         'id': i,
         'icon': imgUrl,
+        'code': 200,
+        'filename': 'test1.mp4',
         'overlays': layerObjs,
     };
     console.log(data);
