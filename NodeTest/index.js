@@ -31,6 +31,10 @@ function threadSleep(sleepDuration) {
 var i = 0;
 
 function getData() {
+    // var lines = fs.readFileSync("d:/log2.txt", 'utf8');
+    // //jsonObj = JSON.stringify(data);
+    // return lines;
+
     imgUrl = i % 2 == 0 ? "http://127.0.0.1:8000/static/images/ship.png" : "http://127.0.0.1:8000/static/images/ship2.png";
     var startX = 150,
         startY = 20,
@@ -98,7 +102,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(message) {
         console.log('received: %s', message);
-        // threadSleep(4000);
+        threadSleep(4000);
         if (ws.readyState == WebSocket.OPEN) {
             ws.send(getData());
         }

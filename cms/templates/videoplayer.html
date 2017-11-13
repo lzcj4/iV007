@@ -31,8 +31,8 @@
 
 <script>
     'use strict';
-    const WS_DATA_SERVER = 'ws://172.16.4.166:8080';
-    const WS_VIDEO_SERVER = 'ws://172.16.16.88:4559';
+    const WS_DATA_SERVER = 'ws://172.16.5.40:8080';
+    const WS_VIDEO_SERVER = 'ws://172.16.16.88:4589';
     const VIDEO_FRAME_RATE = 25;
     const RENDER_INTERVAL = 20;
     const MAX_FRAME_NUM = 100;
@@ -214,7 +214,7 @@
         var wsVideo = new WebSocket(url);
         wsVideo.onopen = function (evt) {
             console.log("video stream web socket connected succeed");
-            wsVideo.send("startvideo=rtsp://172.16.16.88:4558/vs/rp/CE:1B:45:CB:45:0E/1/1/");
+            wsVideo.send("startvideo=rtsp://172.16.16.88:4588/vs/rp/8CE74823211B/10/1/");
             {#            wsVideo.send('startvideo=rtsp://172.16.16.88:4588/vs/rp/A414374375B6/1/1/');#}
         };
 

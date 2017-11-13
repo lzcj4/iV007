@@ -1,9 +1,9 @@
 import json
 import os
+import threading
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-# Create your views here.
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -77,11 +77,8 @@ def file_upload(request):
     if request.method == http_post:
         file_info = request.POST.get(upload_file_infos)
         json_file_info = json.loads(file_info)
-        folder_name = json_file_info[upload_folder_name]
-        file_name = json_file_info[upload_file_name]
-        chunk_count = json_file_info[upload_chunk_count]
-        chunk_no = json_file_info[upload_chunk_no]
-        file_len = int(json_file_info[upload_chunk_len])
+        folder_name, chunk_no, file_len = json_file_info[upload_folder_name], json_file_info[upload_chunk_no], int(
+            json_file_info[upload_chunk_len])
 
         src_file = request.FILES.get("file", None)
 
@@ -123,9 +120,8 @@ def file_upload(request):
 def file_concat(request):
     if request.method == http_post:
         req_infos = json.loads(request.body)
-        folder_name = req_infos[upload_folder_name]
-        file_name = req_infos[upload_file_name]
-        file_info = req_infos[upload_file_infos]
+        folder_name, file_name, file_info = req_infos[upload_folder_name], req_infos[upload_file_name], req_infos[
+            upload_file_infos]
         chunk_no_list = sorted(fi[upload_chunk_no] for fi in file_info)
 
         folder_path = get_upload_folder(folder_name)
@@ -160,11 +156,27 @@ def on_ws_message(message):
     if not cmd or not txt:
         message.reply_channel.send({'text': "invalid ws url or empty text"})
         return
-    ws_concat_file(txt, message.reply_channel)
+    req_json = json.loads(txt)
+    conThread = ContactThread(req_json, message.reply_channel)
+    conThread.start()
+    message.reply_channel.send(
+        {'text': json.dumps({'code': 200, 'msg': "start file concat {0} ".format(req_json[upload_file_name])})})
 
 
-def ws_concat_file(txt, channel):
-    req_infos = json.loads(txt)
+class ContactThread(threading.Thread):
+    def __init__(self, txt, channel):
+        threading.Thread.__init__(self)
+        self.txt = txt
+        self.channel = channel
+
+    def run(self):
+        print("开始线程：" + self.name)
+        ws_concat_file(self.txt, self.channel)
+        print("退出线程：" + self.name)
+
+
+def ws_concat_file(req_json, channel):
+    req_infos = req_json
     folder_name = req_infos[upload_folder_name]
     file_name = req_infos[upload_file_name]
     file_info = req_infos[upload_file_infos]
@@ -183,6 +195,7 @@ def ws_concat_file(txt, channel):
                     print("File concat {0} -> {1} succeed".format(src_file_name, file_name))
                     # channel.send({'text': {'src': src_file_name, 'dst': file_name}})
                     channel.send({'text': json.dumps({'code': 200, 'file_len': file_len, 'progress': file_count,
+                                                      'filename': file_name,
                                                       'msg': "File concat {0} -> {1} succeed".format(src_file_name,
                                                                                                      file_name)})})
                     file_count += 1
@@ -198,7 +211,9 @@ def ws_concat_file(txt, channel):
                 print("Remove chunk file {0}".format(chunk_file))
             except IOError as err:
                 print("Remove chunk file {0} failed".format(chunk_file))
-    channel.send({'text': json.dumps({'code': 200, 'msg': "File concat {0} succeed".format(file_name)})})
+
+    channel.send(
+        {'text': json.dumps({'code': 200, 'filename': file_name, 'msg': "File concat {0} succeed".format(file_name)})})
 
 
 def center(request):

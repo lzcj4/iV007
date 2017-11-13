@@ -28,22 +28,30 @@
                 <td colspan="2"><input type="submit" content="提交"/></td>
             </tr>
         </table>
-        {% verbatim %}
-        <div id="app">
+    </form>
+
+    {% verbatim %}
+    <div id="app">
          <span v-bind:title="message">
             鼠标悬停几秒钟查看此处动态绑定的提示信息！
           </span>
-            <ol>
-                <li v-for="todo in todos">
-                    <span v-bind:title="todo.text">{{ todo.text }}</span>
-                </li>
-            </ol>
-        </div>
-        {% endverbatim %}
-    </form>
+        <ol>
+            <li v-for="todo in todos">
+                <span v-bind:title="todo.text">{{ todo.text }}</span>
+            </li>
+        </ol>
+        <myitem v-for="book in books" v-bind:item="book" v-bind:key="book.id">
 
+        </myitem>
+        <button v-on:click="reverseMessage">Reverse</button>
+    </div>
+    {% endverbatim %}
 
     <script>
+        Vue.component('myitem', {
+            props: ['item'],
+            template: '<li>{{ item.text }}</li>{{ item.text }}'
+        })
         var app = new Vue({
             el: '#app',
             data: {
@@ -52,7 +60,17 @@
                     {text: '学习 JavaScript'},
                     {text: '学习 Vue'},
                     {text: '整个牛项目'}
+                ],
+                books: [
+                    {id: 1, title: '学习 JavaScript'},
+                    {id: 2, title: '学习 Vue'},
+                    {id: 3, title: ' 整个牛项目'},
                 ]
+            },
+            methods: {
+                reverseMessage: function () {
+                    this.message = this.message.split('').reverse().join('')
+                }
             }
         })
     </script>
